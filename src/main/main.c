@@ -1,26 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define BIG_INT 100000
+#define LOW_INT 100
 //caracteres ables:
 #define END 125
 #define INIT 32
 #define SPACE 10
 //Debugers:
 #define DEBUG0 if(0)
-#define DEBUG1 if(1)
+#define DEBUG1 if(0)
+#define DEBUG3 if(0)
 
 
 //classes of globals tokens
-char PR[14][BIG_INT] = {
+char PR[11][BIG_INT] = {
     "program\0", 
     "integer\0", "real\0", "boolean\0",
-    "program\0", "begin\0", "end\0",
     "var\0", "fifo_of_integer\0", "fifo_of_real\0",
     "procedure\0", "function\0",
     "concatena_fifo\0", "inverte_fifo\0"
-    };
-char DS[6] = {
-    ';','.','(',')','[',']'
+};
+char DS[6][2] = {
+    ";\0",".\0","(\0",")\0","[\0","]\0"
+};
+char DC[2][6] = {
+    "begin\0", "end\0"
 };
 char MATH_OPERATORS[6][3] = {
     "+\0","-\0","*\0","/\0","//\0",":=\0"
@@ -28,7 +32,7 @@ char MATH_OPERATORS[6][3] = {
 char REL_OPERATORS[6][3] = {
     "=\0",">\0","<\0",">=\0","<=\0","<>\0"
 };
-char VALUES_BOLLEAN[3][10] = {"true\0", "false\0", "empty\0"};
+char VALUES_BOLLEAN[3][6] = {"true\0", "false\0", "empty\0"};
 
 int acc_adress = 0;
 
@@ -39,18 +43,23 @@ typedef struct node{
     char type[BIG_INT];
     int adress;
     int line;
+    int sentence;
     struct node *next; // struct node *next = malloc(sizeof(node*BIG_INT));
 }Node;
 
 
 //Insert in fifo
-Node* insertFifo(Node *fifo, char new_value, char new_type, int new_line){
+Node* insertFifo(Node *fifo, char* new_value, char* new_type,
+ int new_line, int new_sentence){
     Node *new_node = malloc(sizeof(Node));
     int acc=0;
     if (new_node!=NULL){
-        *new_node->value = new_value;
-        *new_node->type = new_type;
-        *new_node->type = acc_adress;
+        int i = 0;
+        while(new_value[i]!='\0'){new_node->value[i] = new_value[i];i++;}new_node->value[i]='\0';
+        int j = 0;
+        while(new_type[j]!='\0'){new_node->type[j] = new_type[j];j++;}new_node->type[j]='\0';
+        new_node->sentence = new_sentence;
+        new_node->adress = acc_adress;
         new_node->line = new_line;
         new_node->next = NULL;
         if(fifo==NULL){
@@ -137,7 +146,31 @@ Node* concatenaFifo(Node* fifo0, Node* fifo1){ //IN ANALINSING
 
 int compareString(char* str0, char* str1){
     int acc = 0;
-    //DEVELOPER TODAY
+    while (str0[acc]==str1[acc] && str0[acc]!='\0' && str1[acc]!='\0'){
+        acc++;
+    }
+    if (str0[acc]=='\0'&&str1[acc]=='\0'){return 1;}
+    return 0;
+}
+
+
+void programErrorMessage(int curr_line){
+    printf("Erro de sintaxe no programa. Linha: %d.\n", curr_line);
+}
+
+int isDS(char str[]){
+    for (int i=0; i<6; ++i){
+        if (compareString(str,DS[i])==1){return 1;}
+    }
+    return 0;
+}
+
+
+int isPR(char str[]){
+    for (int i=0; i<11; ++i){
+        if (compareString(str,PR[i])==1){return 1;}
+    }
+    return 0;
 }
 
 
@@ -152,9 +185,61 @@ int main(){
         acc+=1;
     } while((sequence_cp[acc-1]>=INIT && sequence_cp[acc-1]<=END) || (sequence_cp[acc-1]==SPACE));
     sequence_cp[acc-1]='\0';
-    printf("Script lido.\n");
-    
-    
+    printf("Script lido. Script:\n");
+    printf("%s\n", sequence_cp);
+
+    //Tokenzing with fifo:
+    Node* tokens = malloc(sizeof(Node));
+    int current_line = 0;
+    int curr_sentence = 0;
+    int i = acc;
+    while (i>=0){
+        // DEBUG3{printf("character=%c\n", sequence_cp[i]);}
+        if (sequence_cp[i]=='\n' || sequence_cp[i]=='\t' || sequence_cp[i]==0){
+            if (sequence_cp[i]=='\n'){current_line+=1;}
+            i--;
+            continue;
+        }
+        if (sequence_cp[i]=='.'){
+            tokens = insertFifo(tokens,".\0","DS\0",current_line,curr_sentence);
+            acc_adress++;
+        }
+        else if (sequence_cp[i]==' '){
+            int j = i+1;
+            char part[BIG_INT];
+            int l = 0;
+            while(sequence_cp[j]!=' '){
+                part[l] = sequence_cp[j];
+                part[l+1]='\0';
+                DEBUG3{printf("part=%s\n", part);}
+                if (isDS(part)){
+                    tokens = insertFifo(tokens,part,"DS\0",current_line,curr_sentence);
+                }
+                l++;
+                j--;
+            }
+            i = i-l;
+            i--;
+        }
+        else if (sequence_cp[i]==';'){
+            curr_sentence+=1;
+            i--;
+        }
+        else{
+            programErrorMessage(current_line);
+            break;
+        }
+        acc_adress++;
+        DEBUG3{
+            Node* aux = tokens;
+            while (aux->next!=NULL){
+                printf("%s|%s|%d|%d|%d\n", aux->value, aux->type,
+                 aux->adress, aux->line, aux->sentence);
+                aux = aux->next;
+            }
+        }
+    }
+    free(tokens);
 
     return 0;
 }
