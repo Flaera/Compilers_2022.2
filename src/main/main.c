@@ -192,10 +192,10 @@ int main(){
     Node* tokens = malloc(sizeof(Node));
     int current_line = 0;
     int curr_sentence = 0;
-    int i = acc;
+    int i = acc-1;
     while (i>=0){
         // DEBUG3{printf("character=%c\n", sequence_cp[i]);}
-        if (sequence_cp[i]=='\n' || sequence_cp[i]=='\t' || sequence_cp[i]==0){
+        if (sequence_cp[i]=='\n' || sequence_cp[i]=='\t' || sequence_cp[i]==' '){
             if (sequence_cp[i]=='\n'){current_line+=1;}
             i--;
             continue;
@@ -205,21 +205,19 @@ int main(){
             acc_adress++;
         }
         else if (sequence_cp[i]==' '){
-            int j = i+1;
+            int j = i-1;
             char part[BIG_INT];
             int l = 0;
-            while(sequence_cp[j]!=' '){
+            while(sequence_cp[j]!=' '&& sequence_cp[j]!='\t' && sequence_cp[j]!='\n' && j>=0){
                 part[l] = sequence_cp[j];
-                part[l+1]='\0';
                 DEBUG3{printf("part=%s\n", part);}
-                if (isDS(part)){
+                if (isDS(part) && sequence_cp[j+1]!=' '&& sequence_cp[j+1]!='\t' && sequence_cp[j+1]!='\n' && j>=0){
                     tokens = insertFifo(tokens,part,"DS\0",current_line,curr_sentence);
                 }
                 l++;
                 j--;
             }
             i = i-l;
-            i--;
         }
         else if (sequence_cp[i]==';'){
             curr_sentence+=1;
