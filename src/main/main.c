@@ -9,7 +9,7 @@
 //Debugers:
 #define DEBUG0 if(0)
 #define DEBUG1 if(0)
-#define DEBUG3 if(0)
+#define DEBUG3 if(1)
 
 
 //classes of globals tokens
@@ -20,8 +20,8 @@ char PR[11][BIG_INT] = {
     "procedure\0", "function\0",
     "concatena_fifo\0", "inverte_fifo\0"
 };
-char DS[6][2] = {
-    ";\0",".\0","(\0",")\0","[\0","]\0"
+char DS[7][2] = {
+    ";\0",".\0",",\0","(\0",")\0","[\0","]\0"
 };
 char DC[2][6] = {
     "begin\0", "end\0"
@@ -41,6 +41,7 @@ int acc_adress = 0;
 typedef struct node{
     char value[BIG_INT];
     char type[BIG_INT];
+    char error[BIG_INT];
     int adress;
     int line;
     int sentence;
@@ -50,7 +51,7 @@ typedef struct node{
 
 //Insert in fifo
 Node* insertFifo(Node *fifo, char* new_value, char* new_type,
- int new_line, int new_sentence){
+ int new_line, int new_sentence, char* new_error){
     Node *new_node = malloc(sizeof(Node));
     int acc=0;
     if (new_node!=NULL){
@@ -58,6 +59,8 @@ Node* insertFifo(Node *fifo, char* new_value, char* new_type,
         while(new_value[i]!='\0'){new_node->value[i] = new_value[i];i++;}new_node->value[i]='\0';
         int j = 0;
         while(new_type[j]!='\0'){new_node->type[j] = new_type[j];j++;}new_node->type[j]='\0';
+        int k=0;
+        while(new_error[k]!='\0'){new_node->error[k] = new_error[k];k++;}new_node->error[k]='\0';
         new_node->sentence = new_sentence;
         new_node->adress = acc_adress;
         new_node->line = new_line;
@@ -154,12 +157,32 @@ int compareString(char* str0, char* str1){
 }
 
 
-void programErrorMessage(int curr_line){
+void invertString(char str[]){
+    int acc = 0;
+    char str1[BIG_INT];
+    while(str[acc]!='\0'){
+        str1[acc] = str[acc];
+        acc++;
+    }
+    acc-=1;
+    int i=0;
+    while(acc>=0){
+        str[i]=str1[acc];
+        acc--;
+        i++;
+    }
+    str1[i] = '\0';
+    return;
+}
+
+
+void programErrorMessageAnaLex(int curr_line){
     printf("Erro de sintaxe no programa. Linha: %d.\n", curr_line);
 }
 
+
 int isDS(char str[]){
-    for (int i=0; i<6; ++i){
+    for (int i=0; i<7; ++i){
         if (compareString(str,DS[i])==1){return 1;}
     }
     return 0;
@@ -172,6 +195,34 @@ int isPR(char str[]){
     }
     return 0;
 }
+
+
+int isDC(char str[]){
+    for (int i=0; i<2; ++i){
+        if (compareString(str, DC[i])){return 1;}
+    }
+    return 0;
+}
+
+
+void showTokens(Node* tokens){
+    printf("TOKENS FIFO:\n");
+    Node* aux = tokens;
+    while (aux->next!=NULL){
+        if (aux->error[0]=='N'){
+            printf("## %s|%s|%d|%d|%d ## \n", aux->value, aux->type,
+             aux->adress, aux->line, aux->sentence);
+        }
+        else{
+            printf("## %s|%s|%d|%d|%d ## | ERRO!  \n", aux->value, aux->type,
+             aux->adress, aux->line, aux->sentence);
+        }
+        aux = aux->next;
+    }
+
+    free(tokens);
+}
+
 
 
 int main(){
@@ -187,57 +238,64 @@ int main(){
     sequence_cp[acc-1]='\0';
     printf("Script lido. Script:\n");
     printf("%s\n", sequence_cp);
+    printf("----\n");
 
     //Tokenzing with fifo:
     Node* tokens = malloc(sizeof(Node));
     int current_line = 0;
     int curr_sentence = 0;
-    int i = acc-1;
+    char* part = malloc(BIG_INT);
+    int i = acc-2;
     while (i>=0){
-        // DEBUG3{printf("character=%c\n", sequence_cp[i]);}
-        if (sequence_cp[i]=='\n' || sequence_cp[i]=='\t' || sequence_cp[i]==' '){
-            if (sequence_cp[i]=='\n'){current_line+=1;}
-            i--;
-            continue;
-        }
-        if (sequence_cp[i]=='.'){
-            tokens = insertFifo(tokens,".\0","DS\0",current_line,curr_sentence);
+        if (sequence_cp[i]=='\n'){current_line++;}
+        if (sequence_cp[i]==';'){curr_sentence++;}
+
+        if (sequence_cp[i]==';' || sequence_cp[i]==',' || sequence_cp[i]=='.'
+         || sequence_cp[i]=='(' || sequence_cp[i]==')' || sequence_cp[i]=='['
+          || sequence_cp[i]==']'){
+            part[0]=sequence_cp[i];part[1]='\0';
+            tokens=insertFifo(tokens,part,"DS\0",current_line,curr_sentence,"NO\0");
             acc_adress++;
-        }
-        else if (sequence_cp[i]==' '){
-            int j = i-1;
-            char part[BIG_INT];
-            int l = 0;
-            while(sequence_cp[j]!=' '&& sequence_cp[j]!='\t' && sequence_cp[j]!='\n' && j>=0){
-                part[l] = sequence_cp[j];
-                DEBUG3{printf("part=%s\n", part);}
-                if (isDS(part) && sequence_cp[j+1]!=' '&& sequence_cp[j+1]!='\t' && sequence_cp[j+1]!='\n' && j>=0){
-                    tokens = insertFifo(tokens,part,"DS\0",current_line,curr_sentence);
-                }
-                l++;
-                j--;
-            }
-            i = i-l;
-        }
-        else if (sequence_cp[i]==';'){
-            curr_sentence+=1;
             i--;
+        }
+        else if (sequence_cp[i]==' ' || sequence_cp[i]=='\t' || sequence_cp[i]=='\n'){
+            int j = i-1;
+            int l = 0;
+            // DEBUG3{printf("AQUI\n");}
+            while ((sequence_cp[j]>=97 && sequence_cp[j]<=122
+             && sequence_cp[i]!=';' && sequence_cp[i]!=',' && sequence_cp[i]!='.'
+              && sequence_cp[i]!='(' && sequence_cp[i]!=')' && sequence_cp[i]!='['
+               && sequence_cp[i]!=']' && sequence_cp[i]!='\"')){
+                part[l] = sequence_cp[j];
+                j--;
+                l++;
+                // DEBUG3{printf("AQUI!!!!\n");}
+            }
+            part[l]='\0';
+            invertString(part);
+            DEBUG3{printf("part:%s-%d-%d-\n", part, j, l);}
+            if (isDS(part)){
+                tokens=insertFifo(tokens,part,"DS\0",current_line,curr_sentence,"NO\0");
+            }
+            else if (isPR(part)){
+                tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
+            }
+            else if (isDC(part)){
+                tokens=insertFifo(tokens,part,"DC\0",current_line,curr_sentence,"NO\0");
+            }
+            i = i-l-1;
         }
         else{
-            programErrorMessage(current_line);
-            break;
+            // DEBUG3{printf("-%d-\n", sequence_cp[i]);}
+            programErrorMessageAnaLex(current_line);
+            insertFifo(tokens,part,"ERRO\0",current_line,curr_sentence,"YES\0");
+            i--;
         }
         acc_adress++;
-        DEBUG3{
-            Node* aux = tokens;
-            while (aux->next!=NULL){
-                printf("%s|%s|%d|%d|%d\n", aux->value, aux->type,
-                 aux->adress, aux->line, aux->sentence);
-                aux = aux->next;
-            }
-        }
     }
-    free(tokens);
+    free(part);
+
+    // showTokens(tokens);
 
     return 0;
 }

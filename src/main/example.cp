@@ -1,11 +1,11 @@
-program;
+program hellocmais;
 
 
-var: integer function printName()
+var: integer function printname()
 begin
-    write("Ola, C+!!\n");
+    write(ola, cmais);
 
-    write("Resultado=",+(2,3,5f),"\n");
+    write(resultado eh,+(2,3,5f));
 
     return 1;
 end
