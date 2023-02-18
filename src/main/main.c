@@ -9,14 +9,14 @@
 //Debugers:
 #define DEBUG0 if(0)
 #define DEBUG1 if(0)
-#define DEBUG3 if(1)
+#define DEBUG3 if(0)
 
 
 //classes of globals tokens
-char PR[13][BIG_INT] = {
-    "program\0", 
+char PR[17][BIG_INT] = {
+    "program\0", "if\0", "then\0", "else\0",
     "integer\0", "real\0", "boolean\0",
-    "var:\0", "fifo_of_integer\0", "fifo_of_real\0",
+    "var:\0", "f\0", "fifo_of_integer\0", "fifo_of_real\0",
     "procedure\0", "function\0",
     "concatena_fifo\0", "inverte_fifo\0",
     "write\0", "read\0"
@@ -67,6 +67,7 @@ Node* insertFifo(Node *fifo, char* new_value, char* new_type,
         new_node->sentence = new_sentence;
         new_node->adress = acc_adress;
         new_node->line = new_line;
+        new_node->next = NULL;
         if(fifo==NULL){
             fifo = new_node;
             acc_adress++;
@@ -214,7 +215,7 @@ int isDS(char str[]){
 
 
 int isPR(char str[]){
-    for (int i=0; i<13; ++i){
+    for (int i=0; i<17; ++i){
         // DEBUG3{printf("AQUI MESMO!!!%s-%s\n", PR[i], str);}
         if (compareString(str,PR[i])){return 1;}
         // DEBUG3{printf("AQUI N DÀ\n");}
@@ -244,6 +245,40 @@ int isRO(char str[]){
         if (compareString(str, REL_OPERATORS[i])){return 1;}
     }
     return 0;
+}
+
+
+int isDIGITO(char str[]){
+    for (int i=0; i<10; ++i){
+        if (compareString(str, DIGITO[i])){return 1;}
+    }
+    return 0;
+}
+
+
+int isDIGIT(char str[]){
+    for (int i=0; i<9; ++i){
+        if (compareString(str, DIGIT[i])){return 1;}
+    }
+    return 0;
+}
+
+
+int isBoolean(char str[]){
+    for (int i=0; i<3; ++i){
+        if (compareString(str, VALUES_BOLLEAN[i])){return 1;}
+    }
+    return 0;
+}
+
+
+int isID(char str[]){
+    int i=0;
+    while (str[i]!='\0'){
+        if (!(str[i]>=97 && str[i]<=122)){return 0;}
+        i++;
+    }
+    return 1;
 }
 
 
@@ -290,11 +325,12 @@ int main(){
     DEBUG0{printf("Before fgets or getchar()\n");}
     char sequence_cp[BIG_INT];
     int acc = 0;
-    do {
+    do{
         sequence_cp[acc]=(char)getchar();
         DEBUG0{printf("-acc:%d|%c-", acc, sequence_cp[acc]);}
         acc+=1;
-    } while((sequence_cp[acc-1]>=INIT && sequence_cp[acc-1]<=END) || (sequence_cp[acc-1]==SPACE));
+    }
+    while ((sequence_cp[acc-1]>=INIT && sequence_cp[acc-1]<=END) || (sequence_cp[acc-1]==SPACE));
     sequence_cp[acc-1]='\0';
     printf("Script lido. Script:\n");
     printf("%s\n", sequence_cp);
@@ -307,9 +343,24 @@ int main(){
     char* part = malloc(BIG_INT);
     int i = acc-2;
     while (i>=0){
-        DEBUG3{printf("sequence:%c\n", sequence_cp[i]);}
+        DEBUG3{printf("sequence:%c-%d\n", sequence_cp[i], sequence_cp[i]);}
         if (sequence_cp[i]=='\n'){current_line++;}
         if (sequence_cp[i]==';'){curr_sentence++;}
+
+        int j = i;
+        int l = 0;
+        // while ((sequence_cp[j]>=97 && sequence_cp[j]<=122)){
+        while ((sequence_cp[j]>=INIT && sequence_cp[j]<=END) && 
+            (sequence_cp[j]>32 && sequence_cp[j]!=';') && sequence_cp[j]!='\t'
+            && (sequence_cp[j]!='(' && sequence_cp[j]!=')')){
+            part[l] = sequence_cp[j];
+            j--;
+            l++;
+        }
+        part[l]='\0';
+        invertString(part);
+        DEBUG3{printf("partGENERAL:%s-\n", part);}
+
 
         if (sequence_cp[i]==';' || sequence_cp[i]==',' || sequence_cp[i]=='.'
          || sequence_cp[i]=='(' || sequence_cp[i]==')' || sequence_cp[i]=='['
@@ -323,56 +374,50 @@ int main(){
             tokens=insertFifo(tokens,"f\0","PR\0",current_line,curr_sentence,"NO\0");
             i--;
         }
-        else if ((sequence_cp[i]>=97 && sequence_cp[i]<=122)){
-            int j = i;
-            int l = 0;
-            while ((sequence_cp[j]>=97 && sequence_cp[j]<=122)){
-                part[l] = sequence_cp[j];
-                j--;
-                l++;
-            }
-            invertString(part);
-            DEBUG3{printf("partPR-DC:%s-\n", part);}
+        else if (isID(part)){
+            DEBUG3{printf("partPR-BOOLEAN-DC-ID:%s-\n", part);}
 
             if (isPR(part)){
                 tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
             }
+            else if (isBoolean(part)){
+                tokens=insertFifo(tokens,part,"BOOLEAN\0",current_line,curr_sentence,"NO\0");
+            }
             else if (isDC(part)){
                 tokens=insertFifo(tokens,part,"DC\0",current_line,curr_sentence,"NO\0");
+            }
+            else{
+                tokens=insertFifo(tokens,part,"ID\0",current_line,curr_sentence,"NO\0");
             }
             i = i-l-1;
         }
         else if (sequence_cp[i]==':' && sequence_cp[i-1]=='r' && sequence_cp[i-2]=='a'
          && sequence_cp[i-3]=='v'){
-            // part = "var:\0";
+            part[0] = 'v';
+            part[1] = 'a';
+            part[2] = 'r';
+            part[3] = ':';
+            part[4] = '\0';
             DEBUG3{printf("partPRvar:%s-\n", part);}
             tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
-            i=i-5;
+            i = i-4;
         }
         else if (sequence_cp[i]==37||sequence_cp[i]==42
-        
-            ||sequence_cp[i]==187||sequence_cp[i]==188
-            ||sequence_cp[i]==191||sequence_cp[i]==192||sequence_cp[i]==195
-            ||sequence_cp[i]==197||sequence_cp[i]==200||sequence_cp[i]==201
-            ||sequence_cp[i]==206||sequence_cp[i]==217||sequence_cp[i]==218
             ||sequence_cp[i]==43
-            
             ||sequence_cp[i]==45
-            ||sequence_cp[i]==193||sequence_cp[i]==194||sequence_cp[i]==196
-            ||sequence_cp[i]==202||sequence_cp[i]==203||sequence_cp[i]==205
-            
             ||sequence_cp[i]==47
-            ||compareString(toString(sequence_cp[i],"/\0"),"//\0")
-            ||compareString(toString(sequence_cp[i],"=\0"),":=\0")){
+            ||(sequence_cp[i]=='/' && sequence_cp[i-1]=='/')
+            ||(sequence_cp[i]=='=' && sequence_cp[i-1]==':')){
             int j = i;
             int l = 0;
-            while ((sequence_cp[i]==37||sequence_cp[i]==42||sequence_cp[i]==43
-            ||sequence_cp[i]==45||sequence_cp[i]==47)
-            ||compareString(toString(sequence_cp[i],"/\0"),"//\0")
-            ||compareString(toString(sequence_cp[i],"=\0"),":=\0")){
-                part[l] = sequence_cp[j];
-                j--;
+            part[l]=sequence_cp[j];
+            l++;
+            j--;
+            if ((sequence_cp[i]=='/' && sequence_cp[i-1]=='/')
+            ||(sequence_cp[i]=='=' && sequence_cp[i-1]==':')){
+                part[l]=sequence_cp[i-1];
                 l++;
+                j--;
             }
             part[l]='\0';
             invertString(part);
@@ -387,18 +432,19 @@ int main(){
             i = i-l-1;
         }
         else if (sequence_cp[i]=='='||sequence_cp[i]=='<'||sequence_cp[i]=='>'
-        ||compareString(toString(sequence_cp[i],"=\0"),">=\0")
-        ||compareString(toString(sequence_cp[i],"=\0"),"<=\0")
-        ||compareString(toString(sequence_cp[i],">\0"),"<>\0")
-        )
+        ||(sequence_cp[i]=='=' && sequence_cp[i-1]=='>')
+        ||(sequence_cp[i]=='=' && sequence_cp[i-1]=='<')
+        ||(sequence_cp[i]=='>' && sequence_cp[i-1]=='<'))
         {
             int j = i;
             int l = 0;
-            while (sequence_cp[i]=='='||sequence_cp[i]=='<'||sequence_cp[i]=='>'
-            ||compareString(toString(sequence_cp[i],"=\0"),">=\0")
-            ||compareString(toString(sequence_cp[i],"=\0"),">=\0")
-            ||compareString(toString(sequence_cp[i],">\0"),"<>\0")){
-                part[l] = sequence_cp[j];
+            part[l] = sequence_cp[i];
+            l++;
+            j--;
+            if ((sequence_cp[i]=='=' && sequence_cp[i-1]=='>')
+            ||(sequence_cp[i]=='=' && sequence_cp[i-1]=='<')
+            ||(sequence_cp[i]=='>' && sequence_cp[i-1]=='<')){
+                part[l] = sequence_cp[i-1];
                 j--;
                 l++;
             }
@@ -406,19 +452,32 @@ int main(){
             invertString(part);
             DEBUG3{printf("partRO:%s-\n", part);}
 
-            if (isRO(part)){
-                tokens=insertFifo(tokens,part,"RO\0",current_line,curr_sentence,"NO\0");
-            }
-            else{
-                tokens=insertFifo(tokens,part,"ID\0",current_line,curr_sentence,"YES\0");
-            }
+            tokens=insertFifo(tokens,part,"RO\0",current_line,curr_sentence,"NO\0");
             i = i-l-1;
         }
+        else if (sequence_cp[i]>=48 && sequence_cp[i]<=57){
+            int j = i;
+            int l = 0;
+            while ((sequence_cp[j]>=48 && sequence_cp[j]<=57)){
+                part[l] = sequence_cp[j];
+                j--;
+                l++;
+            }
+            part[l]='\0';
+            invertString(part);
+            if (isDIGITO(part)){
+                tokens=insertFifo(tokens,part,"DIGITO\0",current_line,curr_sentence,"NO\0");
+            }
+            else if (isDIGIT(part)){
+                tokens=insertFifo(tokens,part,"DIGIT\0",current_line,curr_sentence,"NO\0");
+            }
+            i=i-l-1;
+        }
         else{
-            // DEBUG3{printf("-%d-\n", sequence_cp[i]);}
-            programErrorMessageAnaLex(current_line);
+            DEBUG3{printf("partERROR:%s-%d-\n", part, i);}
+            // programErrorMessageAnaLex(current_line);
             tokens = insertFifo(tokens,part,"ERRO\0",current_line,curr_sentence,"YES\0");
-            i=i-1;
+            i=i-l-1;
         }
         part[0]='\0';
         acc_adress++;
@@ -427,5 +486,6 @@ int main(){
 
     showTokens(tokens);
 
+    free(tokens);
     return 0;
 }
