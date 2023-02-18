@@ -11,5 +11,5 @@ begin
 end
 
 
-printName();
+printname();
 .
