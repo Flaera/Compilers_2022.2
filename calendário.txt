@@ -1,0 +1,7 @@
+Dia da prova é a entrega do trabalho via Moodle, dia 27/03.
+
+De 12 a 25 de março elaborar projeto de análise léxica e sintático.
+Não terá aula.
+Apresentar erros sintáticos.
+
+De 29 em diante, ocorrerá aulas e perguntas sobre implementação.

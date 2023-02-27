@@ -1,0 +1,5 @@
+Questões da prova:
+1) Qual linguagem a grámtica reconhece? - 1pts
+2) Remova todas as recursividades a esquerda? - 1pts
+3) INforme se a gramática é ambígua? - 1pts
+4) Faça uma derivação da gramática tal para o reconhecimento da cadeia tal? - 2pts
