@@ -21,8 +21,8 @@ char PR[17][BIG_INT] = {
     "concatena_fifo\0", "inverte_fifo\0",
     "write\0", "read\0"
 };
-char DS[7][2] = {
-    ";\0",".\0",",\0","(\0",")\0","[\0","]\0"
+char DS[8][2] = {
+    ";\0",".\0",",\0","(\0",")\0","[\0","]\0", "#\0"
 };
 char DC[2][6] = {
     "begin\0", "end\0"
@@ -207,7 +207,7 @@ void programErrorMessageAnaLex(int curr_line){
 
 
 int isDS(char str[]){
-    for (int i=0; i<7; ++i){
+    for (int i=0; i<8; ++i){
         if (compareString(str,DS[i])){return 1;}
     }
     return 0;
@@ -364,7 +364,7 @@ int main(){
 
         if (sequence_cp[i]==';' || sequence_cp[i]==',' || sequence_cp[i]=='.'
          || sequence_cp[i]=='(' || sequence_cp[i]==')' || sequence_cp[i]=='['
-          || sequence_cp[i]==']'){
+          || sequence_cp[i]==']' || sequence_cp[i]=='#'){
             part[0]=sequence_cp[i];part[1]='\0';
             DEBUG3{printf("partDS:%s-\n", part);}
             tokens=insertFifo(tokens,part,"DS\0",current_line,curr_sentence,"NO\0");
