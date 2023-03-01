@@ -13,13 +13,14 @@
 
 
 //classes of globals tokens
-char PR[17][BIG_INT] = {
+char PR[23][BIG_INT] = {
     "program\0", "if\0", "then\0", "else\0",
     "integer\0", "real\0", "boolean\0",
     "var:\0", "f\0", "fifo_of_integer\0", "fifo_of_real\0",
     "procedure\0", "function\0",
     "concatena_fifo\0", "inverte_fifo\0",
-    "write\0", "read\0"
+    "write\0", "read\0",
+    "for\0", "to\0", "do\0", "repeat\0", "until\0", "while\0" 
 };
 char DS[8][2] = {
     ";\0",".\0",",\0","(\0",")\0","[\0","]\0", "#\0"
@@ -215,7 +216,7 @@ int isDS(char str[]){
 
 
 int isPR(char str[]){
-    for (int i=0; i<17; ++i){
+    for (int i=0; i<23; ++i){
         // DEBUG3{printf("AQUI MESMO!!!%s-%s\n", PR[i], str);}
         if (compareString(str,PR[i])){return 1;}
         // DEBUG3{printf("AQUI N DÀ\n");}
