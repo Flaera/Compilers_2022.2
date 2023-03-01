@@ -371,7 +371,9 @@ int main(){
             i--;
         }
         else if (sequence_cp[i]=='f' && sequence_cp[i-1]>=48 && sequence_cp[i-1]<=57){
-            tokens=insertFifo(tokens,"f\0","PR\0",current_line,curr_sentence,"NO\0");
+            part[0]='f';
+            part[1]='\0';
+            tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
             i--;
         }
         else if (isID(part)){
@@ -471,7 +473,7 @@ int main(){
             else if (isDIGIT(part)){
                 tokens=insertFifo(tokens,part,"DIGIT\0",current_line,curr_sentence,"NO\0");
             }
-            i=i-l-1;
+            i=i-l;
         }
         else{
             DEBUG3{printf("partERROR:%s-%d-\n", part, i);}
