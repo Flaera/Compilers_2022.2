@@ -389,7 +389,14 @@ int main(){
             else if (isDC(part)){
                 tokens=insertFifo(tokens,part,"DC\0",current_line,curr_sentence,"NO\0");
             }
-            else{
+            else if (sequence_cp[i]=='\n' || sequence_cp[i]==' '){
+                // part[0]=sequence_cp[i];
+                // part[1]='\0';
+                // tokens=insertFifo(tokens,part,"DS\0",current_line,curr_sentence,"NO\0");
+                i--;
+                continue;
+            }
+            else {
                 tokens=insertFifo(tokens,part,"ID\0",current_line,curr_sentence,"NO\0");
             }
             i = i-l-1;
