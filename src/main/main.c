@@ -287,7 +287,7 @@ void showTokens(Node* tokens){
     printf("TOKENS FIFO:\n");
     Node* aux = tokens;
     
-    while (aux->next!=NULL){
+    while (aux!=NULL){
         if (aux->error[0]=='N'){
             printf("## valor:%s|tipo:%s|endereco:%d|linha:%d|sentenca:%d ##\n",
                 aux->value, aux->type,
@@ -295,14 +295,9 @@ void showTokens(Node* tokens){
         }
         aux = aux->next;
     }
-    if (aux->error[0]=='N'){
-        printf("## valor:%s|tipo:%s|endereco:%d|linha:%d|sentenca:%d ##\n",
-            aux->value, aux->type,
-            aux->adress, aux->line, aux->sentence);
-    }
 
     aux = tokens;
-    while (aux->next!=NULL){
+    while (aux!=NULL){
         if (aux->error[0]=='Y'){
             printf("## valor:%s|tipo:%s|endereco:%d|linha:%d|sentenca:%d ## | ERRO! \n",
                 aux->value, aux->type,
@@ -310,35 +305,29 @@ void showTokens(Node* tokens){
         }
         aux = aux->next;
     }
-    if (aux->error[0]=='Y'){
-        printf("## valor:%s|tipo:%s|endereco:%d|linha:%d|sentenca:%d ## | ERRO! \n",
-            aux->value, aux->type,
-            aux->adress, aux->line, aux->sentence);
-    }
 
     free(aux);
 }
 
 
-
-int main(){
-    printf("Lendo script...\n");
-    DEBUG0{printf("Before fgets or getchar()\n");}
-    char sequence_cp[BIG_INT];
-    int acc = 0;
-    do{
-        sequence_cp[acc]=(char)getchar();
-        DEBUG0{printf("-acc:%d|%c-", acc, sequence_cp[acc]);}
-        acc+=1;
+int tokenzingErrorChecker(Node* tokens){
+    printf("TOKENS FIFO ERRORS:\n");
+    Node* aux = tokens;
+    int error = 0;
+    while (aux!=NULL){
+        if (aux->error[0]=='Y'){
+            printf("## valor:%s|tipo:%s|endereco:%d|linha:%d|sentenca:%d ERROR ##\n",
+                aux->value, aux->type,
+                aux->adress, aux->line, aux->sentence);
+            error=1;
+        }
+        aux = aux->next;
     }
-    while ((sequence_cp[acc-1]>=INIT && sequence_cp[acc-1]<=END) || (sequence_cp[acc-1]==SPACE));
-    sequence_cp[acc-1]='\0';
-    printf("Script lido. Script:\n");
-    printf("%s\n", sequence_cp);
-    printf("----\n");
+    return error;
+}
 
-    //Tokenzing with fifo:
-    Node* tokens = malloc(sizeof(Node));
+
+Node* tokenzing(Node* tokens, char* sequence_cp, int acc){
     int current_line = 0;
     int curr_sentence = 0;
     char* part = malloc(BIG_INT);
@@ -370,12 +359,14 @@ int main(){
             DEBUG3{printf("partDS:%s-\n", part);}
             tokens=insertFifo(tokens,part,"DS\0",current_line,curr_sentence,"NO\0");
             i--;
+            acc_adress++;
         }
         else if (sequence_cp[i]=='f' && sequence_cp[i-1]>=48 && sequence_cp[i-1]<=57){
             part[0]='f';
             part[1]='\0';
             tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
             i--;
+            acc_adress++;
         }
         else if (isID(part)){
             DEBUG3{printf("partPR-BOOLEAN-DC-ID:%s-\n", part);}
@@ -400,6 +391,7 @@ int main(){
                 tokens=insertFifo(tokens,part,"ID\0",current_line,curr_sentence,"NO\0");
             }
             i = i-l-1;
+            acc_adress++;
         }
         else if (sequence_cp[i]==':' && sequence_cp[i-1]=='r' && sequence_cp[i-2]=='a'
          && sequence_cp[i-3]=='v'){
@@ -411,6 +403,7 @@ int main(){
             DEBUG3{printf("partPRvar:%s-\n", part);}
             tokens=insertFifo(tokens,part,"PR\0",current_line,curr_sentence,"NO\0");
             i = i-4;
+            acc_adress++;
         }
         else if (sequence_cp[i]==37||sequence_cp[i]==42
             ||sequence_cp[i]==43
@@ -440,6 +433,7 @@ int main(){
                 tokens=insertFifo(tokens,part,"ID\0",current_line,curr_sentence,"YES\0");
             }
             i = i-l-1;
+            acc_adress++;
         }
         else if (sequence_cp[i]=='='||sequence_cp[i]=='<'||sequence_cp[i]=='>'
         ||(sequence_cp[i]=='=' && sequence_cp[i-1]=='>')
@@ -464,6 +458,7 @@ int main(){
 
             tokens=insertFifo(tokens,part,"RO\0",current_line,curr_sentence,"NO\0");
             i = i-l-1;
+            acc_adress++;
         }
         else if (sequence_cp[i]>=48 && sequence_cp[i]<=57){
             int j = i;
@@ -482,20 +477,53 @@ int main(){
                 tokens=insertFifo(tokens,part,"DIGIT\0",current_line,curr_sentence,"NO\0");
             }
             i=i-l;
+            acc_adress++;
         }
         else{
             DEBUG3{printf("partERROR:%s-%d-\n", part, i);}
             // programErrorMessageAnaLex(current_line);
             tokens = insertFifo(tokens,part,"ERRO\0",current_line,curr_sentence,"YES\0");
             i=i-l-1;
+            acc_adress++;
         }
         part[0]='\0';
-        acc_adress++;
     }
     free(part);
 
+    return tokens;
+}
+
+
+int main(){
+    printf("Lendo script...\n");
+    DEBUG0{printf("Before fgets or getchar()\n");}
+    char sequence_cp[BIG_INT];
+    int acc = 0;
+    do{
+        sequence_cp[acc]=(char)getchar();
+        DEBUG0{printf("-acc:%d|%c-", acc, sequence_cp[acc]);}
+        acc+=1;
+    }
+    while ((sequence_cp[acc-1]>=INIT && sequence_cp[acc-1]<=END) || (sequence_cp[acc-1]==SPACE));
+    sequence_cp[acc-1]='\0';
+    printf("Script lido. Script:\n");
+    printf("%s\n", sequence_cp);
+    printf("----\n");
+
+    //Tokenzing with fifo:
+    Node* tokens = malloc(sizeof(Node));
+    tokens = tokenzing(tokens, sequence_cp, acc);
+    
     showTokens(tokens);
+    int error = tokenzingErrorChecker(tokens);
+    if (error==1){
+        printf("LEXIC ERROR FINDED!\n");
+    }
+    else{
+        printf("Analizing lexic complete no errors.\n");
+    }
 
     free(tokens);
+    
     return 0;
 }

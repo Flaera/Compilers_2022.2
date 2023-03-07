@@ -1,4 +1,4 @@
-program hellocmais;
+program hello?cmais;
 
 
 var: integer function printname()
