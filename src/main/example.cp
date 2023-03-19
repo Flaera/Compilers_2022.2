@@ -1,5 +1,5 @@
-program hello?cmais;
-
+program hellocmais;
+begin
 
 var: integer function printname()
 begin
@@ -12,4 +12,5 @@ end
 
 
 printname();
+end
 .

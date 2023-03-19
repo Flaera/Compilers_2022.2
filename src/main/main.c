@@ -71,7 +71,7 @@ Node* insertFifo(Node *fifo, char* new_value, char* new_type,
         new_node->next = NULL;
         if(fifo==NULL){
             fifo = new_node;
-            acc_adress++;
+            // acc_adress++;
         }
         else{
             Node *aux = fifo;
@@ -81,7 +81,7 @@ Node* insertFifo(Node *fifo, char* new_value, char* new_type,
                 aux = aux->next;
             }
             aux->next = new_node;
-            acc_adress++;
+            // acc_adress++;
         }
     }
     else{printf("Incapaz de alocar memoria. Erro.\n");}
@@ -494,6 +494,69 @@ Node* tokenzing(Node* tokens, char* sequence_cp, int acc){
 }
 
 
+typedef struct tree{
+    Node node_infos;
+    int error;
+    Node* next[BIG_INT];
+} Tree;
+
+
+int aSLRTopDownRight(Node* token, Tree* treeAS){
+    //Tracking:
+    //Rules of production:
+    int error = 0;
+    int acc = 0;
+    if (compareString(*token->value, "program\0" && token!=NULL)){
+        treeAS->node_infos = *token; // a palavra reservada "program"
+        if (compareString((token->next)->type, "ID\0")){
+            treeAS->next[acc]=token->next; // o que deveria ser o nome ou id
+            acc++;
+        }
+        else{error=1;}
+        if (compareString((token->next)->next->type, "DS\0")){
+            // o ponto e virgula
+            treeAS->next[acc]=(token->next)->next;
+            acc++;
+        }
+        else{error=1;}
+        treeAS->next[acc]=NULL;
+        acc++;
+        treeAS->error=0;
+        if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
+    }
+    else if (compareString(*token->value, "begin\0")){
+        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc+1], treeAS);}
+    }
+    else if (compareString(*token->value,"var:\0")){
+        treeAS->node_infos = *token;
+        if (compareString(*token->next->type,"PR\0")){
+            treeAS->next[acc] = token->next;
+            acc++;
+            if ((compareString(*token->next->next->type,"PR\0"))
+             || (compareString(*token->next->next->type,"ID\0"))){
+                treeAS->next[acc] = token->next->next;
+                acc++;
+                if (compareString(*token->next->next->type,"ID\0")
+                && ((compareString(*token->next->next->next->type,"DS\0"))
+                || (compareString(*token->next->next->next->type,"PR\0")))){
+                    treeAS->next[acc] = token->next->next->next;
+                    acc++;
+                }
+                else{error=1;}
+            }
+            else{error=1;}
+        }else{error=1;}
+        if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
+    }else{error=1;}
+
+    //Backtracking:
+    if (error==1) {
+        treeAS->error=1;
+    }
+    return 0;
+}
+
+
 int main(){
     printf("Lendo script...\n");
     DEBUG0{printf("Before fgets or getchar()\n");}
@@ -521,6 +584,11 @@ int main(){
     }
     else{
         printf("Analizing lexic complete no errors.\n");
+
+        Tree *treeAS = malloc(sizeof(Tree));
+        aSLRTopDownRight(tokens, treeAS);
+
+        free(treeAS);
     }
 
     free(tokens);

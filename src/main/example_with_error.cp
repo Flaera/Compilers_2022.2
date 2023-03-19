@@ -1,4 +1,5 @@
-program hello$cmais;
+program hello&cmais;
+begin
 
 
 var: integer function printname()
@@ -12,4 +13,5 @@ end
 
 
 printname();
+end
 .
