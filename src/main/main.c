@@ -173,6 +173,25 @@ int compareString(char* str0, char* str1){
 }
 
 
+char* concatenaString(char* str0, char* str1){
+    int acc0 = 0;
+    while (str0[acc0]!='\0'){
+        acc0++;
+    }
+    int acc1 = 0;
+    while (str1[acc1]!='\0'){
+        acc1++;
+    }
+    int acc2 = 0;
+    while (acc2 <= acc1){
+        str0[acc0+acc2] = str1[acc2];
+        acc2++;
+    }
+    str0[acc0+acc2]='\0';
+    return str0;
+}
+
+
 void invertString(char str[]){
     int acc = 0;
     char str1[BIG_INT];
@@ -501,11 +520,24 @@ typedef struct tree{
 } Tree;
 
 
+void declarationVar(Node* token, Tree* treeAS, int* acc){
+    if (compareString(*token->next->next->type,"ID\0")){
+        treeAS->next[*acc] = token->next->next;
+        *acc++;
+        if (compareString(*token->next->next->next->type,"DS\0")){
+            treeAS->next[*acc] = token->next->next->next;
+            *acc++;
+        }
+    }
+}
+
+
 int aSLRTopDownRight(Node* token, Tree* treeAS){
     //Tracking:
     //Rules of production:
     int error = 0;
     int acc = 0;
+    //program id ds
     if (compareString(*token->value, "program\0" && token!=NULL)){
         treeAS->node_infos = *token; // a palavra reservada "program"
         if (compareString((token->next)->type, "ID\0")){
@@ -524,9 +556,15 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
         treeAS->error=0;
         if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
     }
+    //inicio de bloco de instrucao
     else if (compareString(*token->value, "begin\0")){
         if(token!=NULL){aSLRTopDownRight(treeAS->next[acc+1], treeAS);}
     }
+    //termino de bloco de instrucao:
+    else if (compareString(*token->value,"end\0")){
+        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc+1], treeAS);}
+    }
+    //declaracao de var and function
     else if (compareString(*token->value,"var:\0")){
         treeAS->node_infos = *token;
         if (compareString(*token->next->type,"PR\0")){
@@ -536,13 +574,29 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
              || (compareString(*token->next->next->type,"ID\0"))){
                 treeAS->next[acc] = token->next->next;
                 acc++;
-                if (compareString(*token->next->next->type,"ID\0")
-                && ((compareString(*token->next->next->next->type,"DS\0"))
-                || (compareString(*token->next->next->next->type,"PR\0")))){
-                    treeAS->next[acc] = token->next->next->next;
+                //var declaration:
+                declarationVar(token,treeAS,&acc);
+                //function declaration:
+                if (compareString(*token->next->next->type,"PR\0")){
+                    treeAS->next[acc] = token->next->next;
                     acc++;
+                    if (compareString(*token->next->next->next->value,"(\0")){
+                        treeAS->next[acc] = token->next->next->next;
+                        acc++;
+                        Node* aux = token->next->next->next->next;
+                        //TALVEZ AQUI COMTENHA UM ERRO DEVIDO AO COMPACAO ENTRE NULL E STRING
+                        //list of parameters:
+                        int acc1=0;
+                        while (!compareString(aux->value,")\0") && aux!=NULL){
+                            if (compareString(token->value,"var:\0")){
+                                declarationVar(aux,treeAS,&acc1);
+                            }
+                            acc1++;
+                            if (aux->next!=NULL){aux = aux->next;}
+                            else{error=1;token=aux->next;break;} //Talvez isso impessa o bug
+                        }
+                    }
                 }
-                else{error=1;}
             }
             else{error=1;}
         }else{error=1;}
