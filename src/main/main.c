@@ -515,17 +515,18 @@ Node* tokenzing(Node* tokens, char* sequence_cp, int acc){
 
 typedef struct tree{
     Node node_infos;
+    int len;
     int error;
     Node* next[BIG_INT];
 } Tree;
 
 
 void declarationVar(Node* token, Tree* treeAS, int* acc){
-    if (compareString(*token->next->next->type,"ID\0")){
-        treeAS->next[*acc] = token->next->next;
+    if (compareString(*token->type,"ID\0")){
+        treeAS->next[*acc] = token;
         *acc++;
-        if (compareString(*token->next->next->next->type,"DS\0")){
-            treeAS->next[*acc] = token->next->next->next;
+        if (compareString(*token->next->type,"DS\0") && (!isDC(")\0"))){
+            treeAS->next[*acc] = token->next;
             *acc++;
         }
     }
@@ -538,7 +539,7 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
     int error = 0;
     int acc = 0;
     //program id ds
-    if (compareString(*token->value, "program\0" && token!=NULL)){
+    if (compareString(*token->value, PR[0]) && token!=NULL){
         treeAS->node_infos = *token; // a palavra reservada "program"
         if (compareString((token->next)->type, "ID\0")){
             treeAS->next[acc]=token->next; // o que deveria ser o nome ou id
@@ -553,55 +554,104 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
         else{error=1;}
         treeAS->next[acc]=NULL;
         acc++;
+        treeAS->len=acc;
         treeAS->error=0;
         if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
     }
     //inicio de bloco de instrucao
-    else if (compareString(*token->value, "begin\0")){
-        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc+1], treeAS);}
+    else if (compareString(*token->value,DC[0])){
+        acc++;
+        treeAS->len=acc;
+        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
     }
     //termino de bloco de instrucao:
-    else if (compareString(*token->value,"end\0")){
-        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc+1], treeAS);}
+    else if (compareString(*token->value,DC[1])){
+        acc++;
+        treeAS->len=acc;
+        if(token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
     }
     //declaracao de var and function
-    else if (compareString(*token->value,"var:\0")){
+    else if (compareString(*token->value,PR[7])){
         treeAS->node_infos = *token;
         if (compareString(*token->next->type,"PR\0")){
             treeAS->next[acc] = token->next;
             acc++;
+            treeAS->len=acc;
             if ((compareString(*token->next->next->type,"PR\0"))
              || (compareString(*token->next->next->type,"ID\0"))){
                 treeAS->next[acc] = token->next->next;
                 acc++;
+                treeAS->len=acc;
                 //var declaration:
-                declarationVar(token,treeAS,&acc);
+                declarationVar(token->next->next,treeAS,&acc);
                 //function declaration:
                 if (compareString(*token->next->next->type,"PR\0")){
                     treeAS->next[acc] = token->next->next;
                     acc++;
+                    treeAS->len=acc;
                     if (compareString(*token->next->next->next->value,"(\0")){
                         treeAS->next[acc] = token->next->next->next;
                         acc++;
+                        treeAS->len=acc;
                         Node* aux = token->next->next->next->next;
-                        //TALVEZ AQUI COMTENHA UM ERRO DEVIDO AO COMPACAO ENTRE NULL E STRING
                         //list of parameters:
                         int acc1=0;
-                        while (!compareString(aux->value,")\0") && aux!=NULL){
-                            if (compareString(token->value,"var:\0")){
+                        while (!compareString(aux->value,DS[4]) && aux!=NULL){
+                            if (compareString(token->value,PR[7])){
                                 declarationVar(aux,treeAS,&acc1);
                             }
                             acc1++;
                             if (aux->next!=NULL){aux = aux->next;}
-                            else{error=1;token=aux->next;break;} //Talvez isso impessa o bug
+                            else{
+                                error=1;
+                                token=aux->next;
+                                break;
+                            }
                         }
+                        treeAS->next[acc] = aux->next; //add parentesis closed
+                        acc1++;
+                        acc = acc + acc1;
+                        treeAS->len=acc;
                     }
                 }
             }
             else{error=1;}
         }else{error=1;}
         if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}
-    }else{error=1;}
+    }
+    //procedure declaration:
+    else if (compareString(token->value,PR[11])){
+        treeAS->node_infos = *token;
+        if (compareString(*token->next->type,"ID\0")){
+            treeAS->next[acc] = token->next;
+            acc++;
+            if (compareString(*token->next->next->value,DS[3])){
+                treeAS->next[acc] = token->next->next;
+                acc++;
+                Node* aux = token->next->next->next;
+                //list of parameters:
+                int acc1=0;
+                while (!compareString(aux->value,DS[4]) && aux!=NULL){
+                    if (compareString(token->value,PR[7])){
+                        declarationVar(aux,treeAS,&acc1);
+                    }
+                    acc1++;
+                    if (aux->next!=NULL){aux = aux->next;}
+                    else{
+                        error=1;
+                        token=aux->next;
+                        break;
+                    }
+                }
+                treeAS->next[acc] = aux->next; //add parentesis closed
+                acc1++;
+                acc = acc + acc1;
+                treeAS->len=acc;
+            }
+            else{error=1;}
+        }else{error=1;}
+        if (token!=NULL){aSLRTopDownRight(treeAS->next[acc], treeAS);}       
+    }
 
     //Backtracking:
     if (error==1) {
