@@ -523,6 +523,8 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
     if (token!=NULL){       
         int acc = 0;
         //pointer of final file:
+        DEBUG4{printf("Loop infinity?\n");}
+
         if (compareString(token->value,DS[1])){
             treeAS->next[acc] = token;
             acc++;
@@ -534,6 +536,23 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
                 aux = aux->next;
             }
             token = token->next;
+        }
+        //, finded
+        else if (compareString(token->value,DS[2])){
+            treeAS->next[acc] = token;
+            token = token->next;
+            acc++;
+            treeAS->len_nodes[LEVEL_TREE]=acc;
+            while (token!=NULL && (compareString(token->type,CLASS[0])
+            || compareString(token->type,CLASS[6])
+            || compareString(token->type,CLASS[7])
+            || compareString(token->type,CLASS[8]))){
+                treeAS->next[acc] = token;
+                token = token->next;
+                acc++;
+                treeAS->len_nodes[LEVEL_TREE]=acc;
+            }
+            DEBUG4{printf("Estou aqui");}
         }
         //; finded: program id ds -OR- var: pr id ds
         // -OR- calling functions with or no parameters
@@ -591,23 +610,58 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
                 token = token->next;
                 acc++;
                 treeAS->len_nodes[LEVEL_TREE]=acc;
+                //if find id's into parenthesis:
                 if (token!=NULL && (compareString(token->type,CLASS[0]))){
+                    while (token!=NULL && compareString(token->type,CLASS[0])){
+                        treeAS->next[acc] = token;
+                        token = token->next;
+                        acc++;
+                        treeAS->len_nodes[LEVEL_TREE]=acc;
+                    }
+                }
+                // if math operators find:
+                else if (token!=NULL && compareString(token->value,MATH_OPERATORS[0])){
                     treeAS->next[acc] = token;
                     token = token->next;
                     acc++;
                     treeAS->len_nodes[LEVEL_TREE]=acc;
-                }else{error=1;}
+                }
+                else if (token!=NULL && compareString(token->value,MATH_OPERATORS[1])){
+                    treeAS->next[acc] = token;
+                    token = token->next;
+                    acc++;
+                    treeAS->len_nodes[LEVEL_TREE]=acc;
+                }
+                else if (token!=NULL && compareString(token->value,MATH_OPERATORS[2])){
+                    treeAS->next[acc] = token;
+                    token = token->next;
+                    acc++;
+                    treeAS->len_nodes[LEVEL_TREE]=acc;
+                }
+                else if (token!=NULL && compareString(token->value,MATH_OPERATORS[3])){
+                    treeAS->next[acc] = token;
+                    token = token->next;
+                    acc++;
+                    treeAS->len_nodes[LEVEL_TREE]=acc;
+                }
+                else if (token!=NULL && compareString(token->value,MATH_OPERATORS[4])){
+                    treeAS->next[acc] = token;
+                    token = token->next;
+                    acc++;
+                    treeAS->len_nodes[LEVEL_TREE]=acc;
+                }
+                else{error=1;}
             }
+            // if find DIGIT, DIGITO or ID in comand return
             else if (token!=NULL && (compareString(token->type,CLASS[7])
             || compareString(token->type,CLASS[8]) || compareString(token->type,CLASS[0]))){
-                DEBUG4{printf("AO MENOS ENTRA AQUI!\n");}
                 while (token!=NULL && (compareString(token->type,CLASS[7])
                 || compareString(token->type,CLASS[8]) || compareString(token->type,CLASS[0]))){
                     treeAS->next[acc] = token;
                     token = token->next;
                     acc++;
                     treeAS->len_nodes[LEVEL_TREE]=acc;
-                    DEBUG4{printf("Loop infinity?\n");}
+                    DEBUG4{printf("AO MENOS ENTRA AQUI!\n");}
                 }
                 treeAS->next[acc] = token;
                 token = token->next;
@@ -646,7 +700,56 @@ int aSLRTopDownRight(Node* token, Tree* treeAS){
             treeAS->len_nodes[LEVEL_TREE]=acc;
             // free(aux); //POR ALGUMA RAZAO ESTE FREE BUGA.
         }
-        
+        // if find id's:
+        else if (compareString(token->type, CLASS[0])){
+            while (compareString(token->type, CLASS[0])){
+                treeAS->next[acc] = token;
+                token = token->next;
+                acc++;
+                treeAS->len_nodes[LEVEL_TREE]=acc;
+            }
+            if (token!=NULL && (compareString(token->value,DS[3])
+            || compareString(token->value,PR[13])
+            || compareString(token->value,PR[14])
+            || compareString(token->value,PR[15])
+            || compareString(token->value,PR[16]))){
+                treeAS->next[acc] = token;
+                token = token->next;
+                acc++;
+                treeAS->len_nodes[LEVEL_TREE]=acc;
+            }else{error=1;}
+        }
+        //if function declared:
+        else if (compareString(token->value, PR[12])){
+            treeAS->next[acc] = token;
+            token = token->next;
+            acc++;
+            treeAS->len_nodes[LEVEL_TREE]=acc;
+            if (token!=NULL && (compareString(token->value,PR[4])
+            || compareString(token->value,PR[5])
+            || compareString(token->value,PR[6]))){
+                treeAS->next[acc] = token;
+                token = token->next;
+                acc++;
+                treeAS->len_nodes[LEVEL_TREE]=acc;
+                if (token!=NULL && compareString(token->value,PR[7])){
+                    treeAS->next[acc] = token;
+                    token = token->next;
+                    acc++;
+                    treeAS->len_nodes[LEVEL_TREE]=acc;
+                }
+                else{error=1;}
+            }
+            else{error=1;}
+        }
+        //if begin's:
+        else if (compareString(token->value,DC[0])){
+            treeAS->next[acc] = token;
+            token = token->next;
+            acc++;
+            treeAS->len_nodes[LEVEL_TREE]=acc;
+        }
+
         //declaration of functions --> var:(pr) pr id ds( list_parameters ds)
 
 
@@ -694,13 +797,14 @@ int main(){
     }
     else{
         printf("Analizing lexic complete NO errors.\n");
-        Tree *treeAS = malloc(sizeof(Tree));
+        Tree* treeAS = malloc(sizeof(Tree));
         aSLRTopDownRight(tokens->next, treeAS);
         for (int i=0; i<LEVEL_TREE; ++i){
             printf("Level %d:\n\t",i);
-            for (int j=0; j<treeAS->len_nodes[i]; ++j){
-                // DEBUG4{printf("LEN:(%d)",treeAS->len_nodes[i]);}
-                printf("%s ",treeAS->next[j]->value);
+            Node* aux = *treeAS->next;
+            while (aux!=NULL){
+                printf("%s ", aux->value);
+                aux = aux->next;
             }
             printf("\n");
         }
